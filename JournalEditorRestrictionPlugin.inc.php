@@ -71,6 +71,7 @@ class JournalEditorRestrictionPlugin extends GenericPlugin
     {
         $templateMgr = TemplateManager::getManager($this->getRequest());
         $currentUser = $templateMgr->get_template_vars('currentUser');
+        if(!$currentUser) return false;
 
         $userGroupDao = DAORegistry::getDAO('UserGroupDAO');
         $currentUserGroups = $userGroupDao->getByUserId($currentUser->getId(), $this->getCurrentContextId());
@@ -87,14 +88,13 @@ class JournalEditorRestrictionPlugin extends GenericPlugin
 
     public function setupBackendPage($hookName, $args)
     {
-        if ($this->isCurrentUserAreJournalEditorAndNotJournalManager()) {
-            $templateMgr = TemplateManager::getManager($this->getRequest());
-            $menu = $templateMgr->getState('menu');
-            unset($menu['settings']);
-            unset($menu['tools']);
+        if (!$this->isCurrentUserAreJournalEditorAndNotJournalManager()) return;
+        $templateMgr = TemplateManager::getManager($this->getRequest());
+        $menu = $templateMgr->getState('menu');
+        unset($menu['settings']);
+        unset($menu['tools']);
 
-            $templateMgr->setState(['menu' => $menu]);
-        }
+        $templateMgr->setState(['menu' => $menu]);
     }
 
 
