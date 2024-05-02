@@ -19,7 +19,6 @@ Based on our experience when handling our clients, some of our clients come from
 ## Configuration
 - Currently there's no configuration needed for this plugin. Once the plugin is enabled, the Journal Editors will not be able to access the sections mentioned above.
 
-
 ## Requirement:
 - Minimum OJS version 3.3.x
 
