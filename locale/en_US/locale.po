@@ -16,6 +16,3 @@ msgstr "Journal Editor Restriction Plugin"
 
 msgid "plugins.generic.journalEditorRestriction.description"
 msgstr "Restricts some access for Journal Editors"
-
-msgid "plugins.generic.journalEditorRestriction.thanksforpurchaseplugin"
-msgstr "Thanks for purchasing our plugin"

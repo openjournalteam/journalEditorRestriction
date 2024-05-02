@@ -18,11 +18,6 @@ import('lib.pkp.classes.plugins.GenericPlugin');
 
 class JournalEditorRestrictionPlugin extends GenericPlugin
 {
-    public function getHideManagement()
-    {
-        return true;
-    }
-
     /**
      * @copydoc Plugin::register()
      * Nama file class dan nama folder tidak boleh sama.
@@ -46,7 +41,6 @@ class JournalEditorRestrictionPlugin extends GenericPlugin
         $requestedPage = $router->getRequestedPage($request);
         $requestedOp = $router->getRequestedOp($request);
         $requestedArgs = $router->getRequestedArgs($request);
-
         // Restrict user to access some pages when the menu is removed
         switch ($requestedPage) {
             case 'management':
@@ -57,10 +51,7 @@ class JournalEditorRestrictionPlugin extends GenericPlugin
                     'distribution',
                     'access'
                 ];
-                if (
-                    ($requestedOp == 'settings' && !empty(array_intersect($blackListArgs, $requestedArgs))) ||
-                    $requestedOp == 'tools'
-                ) {
+                if (($requestedOp == 'settings' && !empty(array_intersect($blackListArgs, $requestedArgs))) || $requestedOp == 'tools') {
                     $request->redirectHome();
                 }
                 break;
