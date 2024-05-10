@@ -33,6 +33,9 @@ class JournalEditorRestrictionPlugin extends GenericPlugin
         return $success;
     }
 
+    /**
+     * Hook into `LoadHandler` to Block access to interface
+     */
     public function loadHandler($hookName, $args)
     {
         if (!$this->isCurrentUserAreJournalEditorAndNotJournalManager()) return;
@@ -60,7 +63,7 @@ class JournalEditorRestrictionPlugin extends GenericPlugin
     }
 
     /**
-     * Block access to API and GridHandler
+     * Hook into `Dispatcher::dispatch` to block access to API and GridHandler
      */
     public function dispatcherCallback($hookName, $request)
     {
