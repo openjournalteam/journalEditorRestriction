@@ -66,13 +66,15 @@ class JournalEditorRestrictionPlugin extends GenericPlugin
 
         $userGroupDao = DAORegistry::getDAO('UserGroupDAO');
         $currentUserGroups = $userGroupDao->getByUserId($currentUser->getId(), $this->getCurrentContextId());
-
-        // Get List user group name use locale en_US only
-        $currentUserGroupNames = collect($currentUserGroups->toArray())->map(function ($userGroup) {
-            return strtolower($userGroup->getName('en_US'));
+        
+        $currentUserGroupNameLocaleKeys = collect($currentUserGroups->toArray())->map(function ($userGroup) {
+            return $userGroup->getData('nameLocaleKey');
         })->toArray();
 
-        return in_array('journal editor', $currentUserGroupNames) && !in_array('journal manager', $currentUserGroupNames);
+        // Make sure the user is not a journal manager
+        if(in_array('default.groups.name.manager', $currentUserGroupNameLocaleKeys)) return false;
+
+        return in_array('default.groups.name.editor', $currentUserGroupNameLocaleKeys);
     }
 
 
