@@ -60,13 +60,12 @@ class JournalEditorRestrictionPlugin extends GenericPlugin
 
     public function isCurrentUserAreJournalEditorAndNotJournalManager()
     {
-        $templateMgr = TemplateManager::getManager($this->getRequest());
-        $currentUser = $templateMgr->get_template_vars('currentUser');
+        $currentUser = $this->getRequest()->getUser();
         if(!$currentUser) return false;
-
+        
         $userGroupDao = DAORegistry::getDAO('UserGroupDAO');
         $currentUserGroups = $userGroupDao->getByUserId($currentUser->getId(), $this->getCurrentContextId());
-        
+
         $currentUserGroupNameLocaleKeys = collect($currentUserGroups->toArray())->map(function ($userGroup) {
             return $userGroup->getData('nameLocaleKey');
         })->toArray();
