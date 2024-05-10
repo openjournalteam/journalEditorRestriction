@@ -26,12 +26,16 @@ class JournalEditorRestrictionPlugin extends GenericPlugin
     {
         $success = parent::register($category, $path, $mainContextId);
         if ($success && $this->getEnabled($mainContextId)) {
+            HookRegistry::register('Dispatcher::dispatch', [$this, 'dispatcherCallback']);
             HookRegistry::register('LoadHandler', [$this, 'loadHandler']);
             HookRegistry::register('TemplateManager::setupBackendPage', [$this, 'setupBackendPage']);
         }
         return $success;
     }
 
+    /**
+     * Hook into `LoadHandler` to Block access to interface
+     */
     public function loadHandler($hookName, $args)
     {
         if (!$this->isCurrentUserAreJournalEditorAndNotJournalManager()) return;
@@ -58,21 +62,70 @@ class JournalEditorRestrictionPlugin extends GenericPlugin
         }
     }
 
+    /**
+     * Hook into `Dispatcher::dispatch` to block access to API and GridHandler
+     */
+    public function dispatcherCallback($hookName, $request)
+    {
+        if (!$this->isCurrentUserAreJournalEditorAndNotJournalManager()) return;
+
+        $router = $request->getRouter();
+        
+        // Block access to some API endpoint
+        if($router instanceof APIRouter){
+            $blockedApiEntity = [
+                'contexts',
+                '_payments',
+            ];
+
+            if(!in_array($router->getEntity(), $blockedApiEntity)) return;
+
+            $router->handleAuthorizationFailure($request, 'api.403.unauthorized');
+        }
+
+        // Block access to some GridHandler
+        if($router instanceof PKPComponentRouter){
+            $rpcServiceEndpoint =& $router->getRpcServiceEndpoint($request);
+            
+            // Let the system handle the request if the rpc service endpoint is not callable
+            if(!is_callable($rpcServiceEndpoint)) return;
+
+            [$gridHandler, $gridOp] = $rpcServiceEndpoint;
+
+            if(!$gridHandler instanceof GridHandler) return;
+
+            $blockedGridHandlerClass = [
+                'SettingsPluginGridHandler',
+                'PluginGalleryGridHandler',
+                'UserGridHandler',
+            ];
+
+            if(!in_array(get_class($gridHandler), $blockedGridHandlerClass)) return;
+
+            http_response_code('403');
+            header('Content-Type: application/json');
+			echo $router->handleAuthorizationFailure($request, 'api.403.unauthorized')->getString();
+            exit();
+        }
+        
+    }
+
     public function isCurrentUserAreJournalEditorAndNotJournalManager()
     {
-        $templateMgr = TemplateManager::getManager($this->getRequest());
-        $currentUser = $templateMgr->get_template_vars('currentUser');
+        $currentUser = $this->getRequest()->getUser();
         if(!$currentUser) return false;
-
+        
         $userGroupDao = DAORegistry::getDAO('UserGroupDAO');
         $currentUserGroups = $userGroupDao->getByUserId($currentUser->getId(), $this->getCurrentContextId());
 
-        // Get List user group name use locale en_US only
-        $currentUserGroupNames = collect($currentUserGroups->toArray())->map(function ($userGroup) {
-            return strtolower($userGroup->getName('en_US'));
+        $currentUserGroupNameLocaleKeys = collect($currentUserGroups->toArray())->map(function ($userGroup) {
+            return $userGroup->getData('nameLocaleKey');
         })->toArray();
 
-        return in_array('journal editor', $currentUserGroupNames) && !in_array('journal manager', $currentUserGroupNames);
+        // Make sure the user is not a journal manager
+        if(in_array('default.groups.name.manager', $currentUserGroupNameLocaleKeys)) return false;
+
+        return in_array('default.groups.name.editor', $currentUserGroupNameLocaleKeys);
     }
 
 
