@@ -26,6 +26,7 @@ class JournalEditorRestrictionPlugin extends GenericPlugin
     {
         $success = parent::register($category, $path, $mainContextId);
         if ($success && $this->getEnabled($mainContextId)) {
+            HookRegistry::register('Dispatcher::dispatch', [$this, 'dispatcherCallback']);
             HookRegistry::register('LoadHandler', [$this, 'loadHandler']);
             HookRegistry::register('TemplateManager::setupBackendPage', [$this, 'setupBackendPage']);
         }
@@ -56,6 +57,54 @@ class JournalEditorRestrictionPlugin extends GenericPlugin
                 }
                 break;
         }
+    }
+
+    /**
+     * Block access to API and GridHandler
+     */
+    public function dispatcherCallback($hookName, $request)
+    {
+        if (!$this->isCurrentUserAreJournalEditorAndNotJournalManager()) return;
+
+        $router = $request->getRouter();
+        
+        // Block access to some API endpoint
+        if($router instanceof APIRouter){
+            $blockedApiEntity = [
+                'contexts',
+                '_payments',
+            ];
+
+            if(!in_array($router->getEntity(), $blockedApiEntity)) return;
+
+            $router->handleAuthorizationFailure($request, 'api.403.unauthorized');
+        }
+
+        // Block access to some GridHandler
+        if($router instanceof PKPComponentRouter){
+            $rpcServiceEndpoint =& $router->getRpcServiceEndpoint($request);
+            
+            // Let the system handle the request if the rpc service endpoint is not callable
+            if(!is_callable($rpcServiceEndpoint)) return;
+
+            [$gridHandler, $gridOp] = $rpcServiceEndpoint;
+
+            if(!$gridHandler instanceof GridHandler) return;
+
+            $blockedGridHandlerClass = [
+                'SettingsPluginGridHandler',
+                'PluginGalleryGridHandler',
+                'UserGridHandler',
+            ];
+
+            if(!in_array(get_class($gridHandler), $blockedGridHandlerClass)) return;
+
+            http_response_code('403');
+            header('Content-Type: application/json');
+			echo $router->handleAuthorizationFailure($request, 'api.403.unauthorized')->getString();
+            exit();
+        }
+        
     }
 
     public function isCurrentUserAreJournalEditorAndNotJournalManager()
